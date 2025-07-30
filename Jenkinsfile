@@ -15,32 +15,32 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                echo 'Installing Python and Docker if not installed...'
-                sh '''
-                    echo "Python version: $(python3 --version)"
-                    echo "Pip version: $(pip3 --version)"
-                    echo "Docker version: $(docker --version)"
-                '''
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
                 sh '''
+                    docker rm -f flask-container || true
+                    docker rmi -f ${IMAGE_NAME} || true
                     cd flask-app
                     docker build -t ${IMAGE_NAME} .
                 '''
             }
         }
 
-        stage('Run Container') {
+        stage('Save Docker Image') {
             steps {
-                echo 'Running Docker container...'
+                echo 'Saving image as flask-app.tar...'
                 sh '''
-                    docker run -d -p 5000:5000 --name flask-container ${IMAGE_NAME}
+                    docker save -o flask-app/flask-app.tar ${IMAGE_NAME}
+                '''
+            }
+        }
+
+        stage('Run Ansible Playbook') {
+            steps {
+                echo 'Running Ansible playbook to copy and run image on EC2...'
+                sh '''
+                    ansible-playbook -i ansible/inventory ansible/playbook.yml
                 '''
             }
         }
@@ -48,10 +48,10 @@ pipeline {
 
     post {
         success {
-            echo 'CI/CD Pipeline executed successfully!'
+            echo 'Pipeline executed successfully!'
         }
         failure {
-            echo 'CI/CD Pipeline failed.'
+            echo 'Pipeline failed!'
         }
     }
 }
