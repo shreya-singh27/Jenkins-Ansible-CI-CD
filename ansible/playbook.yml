@@ -1,0 +1,17 @@
+
+- name: Deploy Docker Container to EC2
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Copy Docker image to EC2
+      copy:
+        src: ../flask-app/flask-app.tar
+        dest: /home/ubuntu/flask-app.tar
+
+    - name: Load Docker image
+      command: docker load -i /home/ubuntu/flask-app.tar
+
+    - name: Run Flask container
+      command: docker run -d -p 5000:5000 flask-app
+
